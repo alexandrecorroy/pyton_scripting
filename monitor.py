@@ -8,6 +8,8 @@ from datetime import datetime
 import dotenv
 import json
 
+from mongodb_logger import MongoDbLogger
+
 dotenv.load_dotenv()
 
 # Configuration
@@ -28,6 +30,14 @@ logging.basicConfig(
     ],
 )
 
+def log(level, message):
+    if(level == 'info'):
+        logging.info(message)
+        MongoDbLogger().log(level, message)
+    else:
+        logging.error(message)
+        MongoDbLogger().log(level, message)
+
 def mask_token(token):
     return token[:2] + '*' * (len(token) - 4) + token[-2:]
 
@@ -35,7 +45,7 @@ def mask_credentials(credential):
     return '*' * len(credential)
 
 def get_token():
-    logging.info(f'Get token with credentials : {mask_credentials(api_login)} / {mask_credentials(api_password)}')
+    log('info', f'Get token with credentials : {mask_credentials(api_login)} / {mask_credentials(api_password)}')
 
     try:
         response = requests.post(
@@ -47,28 +57,28 @@ def get_token():
             timeout=TIMEOUT_IN_SECONDS
         )
 
-        logging.info(f'Status code: {response.status_code}')
+        log('info', f'Token: {mask_token(response.json()["token"])}')
 
         response.raise_for_status()
 
         if response.status_code == 200:
             return response.json()['token']
-            logging.info(f'Response token : {mask_token(response.json()["token"])}')
+            log('info', f'Response token: {mask_token(response.json()["token"])}')
 
         if response.status_code == 401:
-            logging.error(f'Unauthorized, invalid or missing credentials : {api_login} / {api_password}')
+            log('error', f'Unauthorized, invalid or missing credentials : {api_login} / {api_password}')
 
     except requests.exceptions.RequestException as e:
-        logging.error(f'Error: {e}')
+        log('error', f'Error: {e}')
 
     except Exception as e:
-        logging.error(f'Error: {e}')
+        log('error', f'Error: {e}')
 
 def insert_data_in_database(data_json):
     try:
         connection = connection_to_database()
     except Exception as e:
-        logging.error(f'Error: {e}')
+        log('error', f'Error: {e}')
 
     try:
         cursor = connection.cursor()
@@ -77,8 +87,10 @@ def insert_data_in_database(data_json):
         cursor.close()
         connection.close()
 
+        log('info', f'Data saved in database')
+
     except Exception as e:
-        logging.error(f'Error: {e}')
+        log('error', f'Error: {e}')
 
 def insert_data_in_json_file(data_json, app):
     file_name = "reports/"+datetime.now().strftime("%Y-%m-%d")+"-"+app+".json"
@@ -98,14 +110,14 @@ def insert_data_in_json_file(data_json, app):
     with open(file_name, "w") as f:
         json.dump(data, f, indent=2)
 
-    logging.info(f'Data saved in {file_name}')
+    log('info', f'Data saved in {file_name}')
 
 def main():
-    logging.info('===============================================')
+    log('info', '===============================================')
     token = get_token()
 
     for app in apps:
-        logging.info(f'Checking {app}')
+        log('info', f'Checking {app}')
 
         try:
             response = requests.get(
@@ -115,9 +127,8 @@ def main():
                 },
                 timeout=TIMEOUT_IN_SECONDS
             )
-
-            logging.info(f'Status code: {response.status_code}')
-            logging.info(f'Token: {mask_token(token)}')
+            log('info', f'Response: {response.json()}')
+            log('info', f'Token: {mask_token(token)}')
 
             response.raise_for_status()
 
@@ -125,16 +136,16 @@ def main():
                 insert_data_in_json_file(response.json(), app)
                 insert_data_in_database(response.json())
 
-                logging.info(f'Response: {response.json()}')
+                log(f'Response: {response.json()}')
 
             if response.status_code == 401:
-                logging.error(f'Unauthorized, invalid or missing token : {token}')
+                log('error', f'Unauthorized, invalid or missing token : {token}')
 
         except requests.exceptions.RequestException as e:
-            logging.error(f'Error: {e}')
+            log('error', f'Error: {e}')
 
         except Exception as e:
-            logging.error(f'Error: {e}')
+            log('error', f'Error: {e}')
 
 
 if __name__ == '__main__':
