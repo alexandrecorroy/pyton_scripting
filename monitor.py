@@ -1,4 +1,5 @@
 from logging.handlers import RotatingFileHandler
+from db import connection_to_database
 
 import requests
 import os
@@ -63,6 +64,22 @@ def get_token():
     except Exception as e:
         logging.error(f'Error: {e}')
 
+def insert_data_in_database(data_json):
+    try:
+        connection = connection_to_database()
+    except Exception as e:
+        logging.error(f'Error: {e}')
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO app_status (timestamp, app_name, status, response_time) VALUES (%s, %s, %s, %s)", (datetime.fromtimestamp(data_json['timestamp']), data_json['app'], data_json['status'], data_json['response_time']))
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+    except Exception as e:
+        logging.error(f'Error: {e}')
+
 def insert_data_in_json_file(data_json, app):
     file_name = "reports/"+datetime.now().strftime("%Y-%m-%d")+"-"+app+".json"
 
@@ -106,6 +123,8 @@ def main():
 
             if response.status_code == 200:
                 insert_data_in_json_file(response.json(), app)
+                insert_data_in_database(response.json())
+
                 logging.info(f'Response: {response.json()}')
 
             if response.status_code == 401:
