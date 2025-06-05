@@ -35,7 +35,7 @@ def get_status(app: Optional[str] = 'unknown'):
   })
 
 @app.post('/login')
-def get_token(request: Request):
+async def get_token(request: Request):
 
   login = request.headers.get('login')
   password = request.headers.get('password')

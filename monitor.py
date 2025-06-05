@@ -59,14 +59,13 @@ def get_token():
 
         log('info', f'Token: {mask_token(response.json()["token"])}')
 
-        response.raise_for_status()
-
         if response.status_code == 200:
             return response.json()['token']
             log('info', f'Response token: {mask_token(response.json()["token"])}')
 
         if response.status_code == 401:
             log('error', f'Unauthorized, invalid or missing credentials : {api_login} / {api_password}')
+            return
 
     except requests.exceptions.RequestException as e:
         log('error', f'Error: {e}')
@@ -115,6 +114,10 @@ def insert_data_in_json_file(data_json, app):
 def main():
     log('info', '===============================================')
     token = get_token()
+
+    if not token:
+        log('error', 'Error: Token not found')
+        return
 
     for app in apps:
         log('info', f'Checking {app}')
