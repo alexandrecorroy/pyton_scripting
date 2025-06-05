@@ -30,6 +30,12 @@ logging.basicConfig(
     ],
 )
 
+def create_logs_and_reports_dir():
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+    if not os.path.exists("reports"):
+        os.makedirs("reports")
+
 def log(level, message):
     if(level == 'info'):
         logging.info(message)
@@ -112,6 +118,7 @@ def insert_data_in_json_file(data_json, app):
     log('info', f'Data saved in {file_name}')
 
 def main():
+    create_logs_and_reports_dir()
     log('info', '===============================================')
     token = get_token()
 
