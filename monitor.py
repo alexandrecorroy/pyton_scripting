@@ -13,9 +13,10 @@ dotenv.load_dotenv()
 TIMEOUT_IN_SECONDS = 5
 
 # Environnement
-token = os.environ.get("API_TOKEN")
 url = os.environ.get("API_URL")
 apps = os.environ.get("APPS").split(',')
+api_login = os.environ.get("API_LOGIN")
+api_password = os.environ.get("API_PASSWORD")
 
 # Logging
 logging.basicConfig(
@@ -28,6 +29,39 @@ logging.basicConfig(
 
 def mask_token(token):
     return token[:2] + '*' * (len(token) - 4) + token[-2:]
+
+def mask_credentials(credential):
+    return '*' * len(credential)
+
+def get_token():
+    logging.info(f'Get token with credentials : {mask_credentials(api_login)} / {mask_credentials(api_password)}')
+
+    try:
+        response = requests.post(
+            f'{url}/login',
+            headers={
+                'login': api_login,
+                'password': api_password
+            },
+            timeout=TIMEOUT_IN_SECONDS
+        )
+
+        logging.info(f'Status code: {response.status_code}')
+
+        response.raise_for_status()
+
+        if response.status_code == 200:
+            return response.json()['token']
+            logging.info(f'Response token : {mask_token(response.json()["token"])}')
+
+        if response.status_code == 401:
+            logging.error(f'Unauthorized, invalid or missing credentials : {api_login} / {api_password}')
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f'Error: {e}')
+
+    except Exception as e:
+        logging.error(f'Error: {e}')
 
 def insert_data_in_json_file(data_json, app):
     file_name = "reports/"+datetime.now().strftime("%Y-%m-%d")+"-"+app+".json"
@@ -50,9 +84,10 @@ def insert_data_in_json_file(data_json, app):
     logging.info(f'Data saved in {file_name}')
 
 def main():
-    for app in apps:
+    logging.info('===============================================')
+    token = get_token()
 
-        logging.info('===============================================')
+    for app in apps:
         logging.info(f'Checking {app}')
 
         try:
