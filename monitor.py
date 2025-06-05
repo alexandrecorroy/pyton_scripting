@@ -136,7 +136,7 @@ def main():
                 insert_data_in_json_file(response.json(), app)
                 insert_data_in_database(response.json())
 
-                log(f'Response: {response.json()}')
+                log('info', f'Response: {response.json()}')
 
             if response.status_code == 401:
                 log('error', f'Unauthorized, invalid or missing token : {token}')
