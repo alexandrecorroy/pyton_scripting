@@ -1,3 +1,5 @@
+from logging.handlers import RotatingFileHandler
+
 import requests
 import os
 import logging
@@ -20,7 +22,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/script_"+datetime.now().strftime("%Y-%m-%d")+".log", 'a', 'utf-8')
+        RotatingFileHandler("logs/script_"+datetime.now().strftime("%Y-%m-%d")+".log", 'a', encoding='utf-8', maxBytes=1000000, backupCount=5)
     ],
 )
 
